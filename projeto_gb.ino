@@ -1,11 +1,18 @@
-const int down_pin = 2;
-const int up_pin = 3;
-const int left_pin = 4;
-const int right_pin = 5;
+const byte DOWN_PIN = 2;
+const byte UP_PIN = 3;
+const byte LEFT_PIN = 4;
+const byte RIGHT_PIN = 5;
+const byte EASY_MODE_LED = 8;
+const byte HARD_MODE_LED = 9;
 
-const int VERTICAL_SIZE = 8;
-const int HORIZONTAL_SIZE = 8;
+const byte VERTICAL_SIZE = 8;
+const byte HORIZONTAL_SIZE = 8;
 const int BOARD_SIZE = VERTICAL_SIZE * HORIZONTAL_SIZE;
+
+const int EASY_MODE_INTERVAL_IN_MS = 500;
+const int EASY_MODE_SUBTRACTOR_IN_MS = 4;
+const int HARD_MODE_INTERVAL_IN_MS = 450;
+const int HARD_MODE_SUBTRACTOR_IN_MS = 5;
 
 enum Direction {
   UP,
@@ -15,44 +22,61 @@ enum Direction {
 };
 
 struct Point {
-  short x;
-  short y;
+  byte x;
+  byte y;
 };
 
 Point food = { 0, 0 };
 Point snake[BOARD_SIZE] = { { 4, 3 }, { 4, 4 }, { 4, 5 } };
-short snakeLength = 3;
+int snakeLength = 3;
 Direction direction = RIGHT;
 
-const int INITIAL_SNAKE_SPEED = 500 - snakeLength*6;
-int updateInterval = INITIAL_SNAKE_SPEED;
-unsigned long timeElapsed = 0;
+int updateIntervalInMs = EASY_MODE_INTERVAL_IN_MS;
+short intervalSubstractorInMs = EASY_MODE_SUBTRACTOR_IN_MS;
+unsigned long timeElapsedInMs = 0;
 
 void setup() {
-  pinMode(down_pin, INPUT);
-  pinMode(up_pin, INPUT);
-  pinMode(left_pin, INPUT);
-  pinMode(right_pin, INPUT);
+  pinMode(DOWN_PIN, INPUT);
+  pinMode(UP_PIN, INPUT);
+  pinMode(LEFT_PIN, INPUT);
+  pinMode(RIGHT_PIN, INPUT);
+  pinMode(EASY_MODE_LED, OUTPUT);
+  pinMode(HARD_MODE_LED, OUTPUT);
   
   Serial.begin(9600);
 
+  Serial.println("Press the down button for easy mode or up button for hard mode...");
+  while(!isModeChosen());
   Serial.println("Press the right button to start...");
   while(!canBeginGame());
   generateFood();
 }
 
 void loop() {
-  if (shouldUpdateState()) {
-    moveSnake();
-    checkFoodCollision();
-    renderState();
-    checkGameOver();
+  if (canUpdateGameState()) {
+    updateGameState();
   }
-  readInputsAndUpdateDirection();
+  readInputsAndUpdateSnakeDirection();
+}
+
+bool isModeChosen() {
+  if (digitalRead(UP_PIN)) {
+    intervalSubstractorInMs = HARD_MODE_SUBTRACTOR_IN_MS;
+    updateIntervalInMs = HARD_MODE_INTERVAL_IN_MS;
+    digitalWrite(HARD_MODE_LED, HIGH);
+    return true;
+  }
+  if (digitalRead(DOWN_PIN)) {
+    intervalSubstractorInMs = EASY_MODE_SUBTRACTOR_IN_MS;
+    updateIntervalInMs = EASY_MODE_INTERVAL_IN_MS;
+    digitalWrite(EASY_MODE_LED, HIGH);
+    return true;
+  }
+  return false;
 }
 
 bool canBeginGame() {
-  return digitalRead(right_pin);  
+  return digitalRead(RIGHT_PIN);  
 }
 
 void generateFood() {
@@ -60,8 +84,8 @@ void generateFood() {
   bool validFoodCoordinates = false;
   
   while(!validFoodCoordinates) {
-    short x = random(1, HORIZONTAL_SIZE + 1);
-    short y = random(1, VERTICAL_SIZE + 1);
+    byte x = random(1, HORIZONTAL_SIZE + 1);
+    byte y = random(1, VERTICAL_SIZE + 1);
     
     for (int i = 0; i < snakeLength; i++) {
       if (hasFoodGenerationCollisionWithSnake(i, x, y)) {
@@ -75,7 +99,7 @@ void generateFood() {
   }
 }
 
-bool hasFoodGenerationCollisionWithSnake(int i, short foodX, short foodY) {
+bool hasFoodGenerationCollisionWithSnake(int i, byte foodX, byte foodY) {
   return snake[i].x == foodX && snake[i].y == foodY;
 }
 
@@ -83,12 +107,58 @@ bool hasReachedSnakeHead(int i) {
   return i+1 == snakeLength;
 }
 
-bool shouldUpdateState() {
-  if (millis() > timeElapsed + updateInterval) {
-    timeElapsed = millis();
+bool canUpdateGameState() {
+  if (millis() > timeElapsedInMs + updateIntervalInMs) {
+    timeElapsedInMs = millis();
     return true;
   }
   return false;
+}
+
+void updateGameState() {
+  if (hasFoodCollision()) {
+    handleFoodCollision();
+  } else {
+    moveSnake();
+  }
+  checkGameOver();
+  renderState();
+}
+
+bool hasFoodCollision() {
+  int head = snakeLength - 1;
+  return food.x == snake[head].x && food.y == snake[head].y;
+}
+
+void handleFoodCollision() {
+  increaseSnakeLength();
+  increaseSnakeSpeed();
+  generateFood(); 
+}
+
+void increaseSnakeLength() {
+  readInputsAndUpdateSnakeDirection();
+  int head = snakeLength - 1;
+  
+  if (direction == RIGHT) {
+    byte x = snake[head].x + 1 > HORIZONTAL_SIZE ? 1 : snake[head].x + 1;
+    snake[snakeLength] = { x , snake[head].y };
+  } else if (direction == LEFT) {
+    byte x = snake[head].x - 1 < 1 ? HORIZONTAL_SIZE : snake[head].x - 1;
+    snake[snakeLength] = { x , snake[head].y };
+  } else if (direction == UP) {
+    byte y = snake[head].y - 1 < 1 ? VERTICAL_SIZE : snake[head].y - 1;
+    snake[snakeLength] = { snake[snakeLength - 1].x , y };
+  } else if (direction == DOWN) {
+    byte y = snake[head].y + 1 > VERTICAL_SIZE ? 1 : snake[head].y + 1;
+    snake[snakeLength] = { snake[head].x , y };
+  }
+
+  snakeLength++;   
+}
+
+int increaseSnakeSpeed() {
+    updateIntervalInMs -= intervalSubstractorInMs; 
 }
 
 void moveSnake() {
@@ -107,7 +177,7 @@ void moveSnake() {
 
 void moveRight(int i) {
   if (hasReachedSnakeHead(i)) {
-    short x = snake[i].x + 1 > HORIZONTAL_SIZE ? 1 : snake[i].x + 1;
+    byte x = snake[i].x + 1 > HORIZONTAL_SIZE ? 1 : snake[i].x + 1;
     snake[i] = { x , snake[i].y };
   } else if (i+1 < snakeLength){
     snake[i] = snake[i+1];
@@ -116,7 +186,7 @@ void moveRight(int i) {
 
 void moveLeft(int i) {
   if (hasReachedSnakeHead(i)) {
-    short x = snake[i].x - 1 < 1 ? HORIZONTAL_SIZE : snake[i].x - 1;
+    byte x = snake[i].x - 1 < 1 ? HORIZONTAL_SIZE : snake[i].x - 1;
     snake[i] = { x , snake[i].y };
   } else if (i+1 < snakeLength){
     snake[i] = snake[i+1];
@@ -125,7 +195,7 @@ void moveLeft(int i) {
 
 void moveUp(int i) {
   if (hasReachedSnakeHead(i)) {
-    short y = snake[i].y - 1 < 1 ? VERTICAL_SIZE : snake[i].y - 1;
+    byte y = snake[i].y - 1 < 1 ? VERTICAL_SIZE : snake[i].y - 1;
     snake[i] = { snake[i].x , y };
   } else if (i+1 < snakeLength){
     snake[i] = snake[i+1];
@@ -134,49 +204,68 @@ void moveUp(int i) {
 
 void moveDown(int i) {
   if (hasReachedSnakeHead(i)) {
-    short y = snake[i].y + 1 > VERTICAL_SIZE ? 1 : snake[i].y + 1;
+    byte y = snake[i].y + 1 > VERTICAL_SIZE ? 1 : snake[i].y + 1;
     snake[i] = { snake[i].x , y };
   } else if (i+1 < snakeLength){
     snake[i] = snake[i+1];
   }  
 }
 
-void checkFoodCollision() {
-  if (hasFoodCollision()) {
-    increaseSnakeLength();
-    increaseSnakeSpeed();
-    generateFood();
+void checkGameOver() {
+  if (hasPlayerWin()) {
+    displayWinMessage();
+  }
+  if (hasPlayerLost()) {
+    displayLostMessage();
   }  
 }
 
-boolean hasFoodCollision() {
-  int head = snakeLength - 1;
-  return food.x == snake[head].x && food.y == snake[head].y;
+bool hasPlayerWin() {
+  return snakeLength >= BOARD_SIZE;
 }
 
-void increaseSnakeLength() {
-  readInputsAndUpdateDirection();
-  int head = snakeLength - 1;
-  
-  if (direction == RIGHT) {
-    short x = snake[head].x + 1 > HORIZONTAL_SIZE ? 1 : snake[head].x + 1;
-    snake[snakeLength] = { x , snake[head].y };
-  } else if (direction == LEFT) {
-     short x = snake[head].x - 1 < 1 ? HORIZONTAL_SIZE : snake[head].x - 1;
-     snake[snakeLength] = { x , snake[head].y };
-  } else if (direction == UP) {
-     short y = snake[head].y - 1 < 1 ? VERTICAL_SIZE : snake[head].y - 1;
-     snake[snakeLength] = { snake[snakeLength - 1].x , y };
-  } else if (direction == DOWN) {
-      short y = snake[head].y + 1 > VERTICAL_SIZE ? 1 : snake[head].y + 1;
-      snake[snakeLength] = { snake[head].x , y };
-  }
-
-  snakeLength++;   
+bool hasPlayerLost() {
+  for (int i = 0; i < snakeLength - 1; i++) {
+    if (hasSnakeCollision(i)) {
+      return true;
+    }
+  }   
+  return false;
 }
 
-int increaseSnakeSpeed() {
-  updateInterval = 500 - snakeLength*6; 
+bool hasSnakeCollision(int tail) {
+  int head = snakeLength - 1;
+  return snake[head].x == snake[tail].x && snake[head].y == snake[tail].y; 
+}
+
+void displayWinMessage() {
+  // ------------------------------------------------------------
+  // SUBSTITUIR PRINTS PELA INTERFACE DE COMUNICACAO COM A MATRIZ
+  // ------------------------------------------------------------
+  Serial.println("You win! :)");
+  while(true) {
+    digitalWrite(EASY_MODE_LED, HIGH);
+    digitalWrite(HARD_MODE_LED, LOW);
+    delay(300);
+    digitalWrite(EASY_MODE_LED, LOW);
+    digitalWrite(HARD_MODE_LED, HIGH);
+    delay(300);
+  };
+}
+
+void displayLostMessage() {
+  // ------------------------------------------------------------
+  // SUBSTITUIR PRINTS PELA INTERFACE DE COMUNICACAO COM A MATRIZ
+  // ------------------------------------------------------------
+  Serial.println("You lost... :(");
+  while(true) {
+    digitalWrite(EASY_MODE_LED, HIGH);
+    digitalWrite(HARD_MODE_LED, HIGH);
+    delay(300);
+    digitalWrite(EASY_MODE_LED, LOW);
+    digitalWrite(HARD_MODE_LED, LOW);
+    delay(300);
+  };
 }
 
 void renderState() {
@@ -189,7 +278,7 @@ void renderState() {
   Serial.print(" ");
   Serial.println(food.y);
   Serial.println("");
-  Serial.print("SNAKE: ");
+  Serial.println("SNAKE: ");
   for (int i = 0; i < BOARD_SIZE; i++) {
     if (i < snakeLength) {
       Serial.print(snake[i].x);
@@ -200,62 +289,19 @@ void renderState() {
   Serial.println("");
 }
 
-void checkGameOver() {
-    if (hasPlayerWin()) {
-      displayWinMessage();
-    }
-    if (hasPlayerLost()) {
-      displayLostMessage();
-    }  
-}
-
-boolean hasPlayerWin() {
-  return snakeLength >= BOARD_SIZE;
-}
-
-boolean hasPlayerLost() {
-  for (int i = 0; i < snakeLength - 1; i++) {
-    if (hasSnakeCollision(i)) {
-      return true;
-    }
-  }   
-  return false;
-}
-
-boolean hasSnakeCollision(int tail) {
-  int head = snakeLength - 1;
-  return snake[head].x == snake[tail].x && snake[head].y == snake[tail].y; 
-}
-
-void displayWinMessage() {
-  // ------------------------------------------------------------
-  // SUBSTITUIR PRINTS PELA INTERFACE DE COMUNICACAO COM A MATRIZ
-  // ------------------------------------------------------------
-  Serial.println("You win! :)");
-  while(true);
-}
-
-void displayLostMessage() {
-  // ------------------------------------------------------------
-  // SUBSTITUIR PRINTS PELA INTERFACE DE COMUNICACAO COM A MATRIZ
-  // ------------------------------------------------------------
-  Serial.println("You lost... :(");
-  while(true);
-}
-
-void readInputsAndUpdateDirection() {
+void readInputsAndUpdateSnakeDirection() {
   if (direction == RIGHT || direction == LEFT) {
-    if (digitalRead(up_pin)) {
+    if (digitalRead(UP_PIN)) {
       direction = UP;
-    } else if (digitalRead(down_pin)) {
+    } else if (digitalRead(DOWN_PIN)) {
       direction = DOWN;
     }
   }
                
   if (direction == UP || direction == DOWN) {
-    if (digitalRead(right_pin)) {
+    if (digitalRead(RIGHT_PIN)) {
       direction = RIGHT;
-    } else if (digitalRead(left_pin)) {
+    } else if (digitalRead(LEFT_PIN)) {
       direction = LEFT;
     }
   }
