@@ -9,9 +9,9 @@ const byte VERTICAL_SIZE = 8;
 const byte HORIZONTAL_SIZE = 8;
 const int BOARD_SIZE = VERTICAL_SIZE * HORIZONTAL_SIZE;
 
-const int EASY_MODE_INTERVAL_IN_MS = 500;
+const int EASY_MODE_INTERVAL_IN_MS = 1000;
 const int EASY_MODE_SUBTRACTOR_IN_MS = 4;
-const int HARD_MODE_INTERVAL_IN_MS = 450;
+const int HARD_MODE_INTERVAL_IN_MS = 900;
 const int HARD_MODE_SUBTRACTOR_IN_MS = 5;
 
 enum Direction {
@@ -32,7 +32,7 @@ int snakeLength = 3;
 Direction direction = RIGHT;
 
 int updateIntervalInMs = EASY_MODE_INTERVAL_IN_MS;
-short intervalSubstractorInMs = EASY_MODE_SUBTRACTOR_IN_MS;
+short intervalSubtractorInMs = EASY_MODE_SUBTRACTOR_IN_MS;
 unsigned long timeElapsedInMs = 0;
 
 void setup() {
@@ -44,7 +44,6 @@ void setup() {
   pinMode(HARD_MODE_LED, OUTPUT);
   
   Serial.begin(9600);
-
   Serial.println("Press the down button for easy mode or up button for hard mode...");
   while(!isModeChosen());
   Serial.println("Press the right button to start...");
@@ -61,18 +60,26 @@ void loop() {
 
 bool isModeChosen() {
   if (digitalRead(UP_PIN)) {
-    intervalSubstractorInMs = HARD_MODE_SUBTRACTOR_IN_MS;
-    updateIntervalInMs = HARD_MODE_INTERVAL_IN_MS;
-    digitalWrite(HARD_MODE_LED, HIGH);
-    return true;
+     return selectHardMode();
   }
   if (digitalRead(DOWN_PIN)) {
-    intervalSubstractorInMs = EASY_MODE_SUBTRACTOR_IN_MS;
-    updateIntervalInMs = EASY_MODE_INTERVAL_IN_MS;
-    digitalWrite(EASY_MODE_LED, HIGH);
-    return true;
+    return selectEasyMode();
   }
   return false;
+}
+
+bool selectHardMode() {
+  intervalSubtractorInMs = HARD_MODE_SUBTRACTOR_IN_MS;
+  updateIntervalInMs = HARD_MODE_INTERVAL_IN_MS;
+  digitalWrite(HARD_MODE_LED, HIGH);
+  return true;
+}
+
+bool selectEasyMode() {
+  intervalSubtractorInMs = EASY_MODE_SUBTRACTOR_IN_MS;
+  updateIntervalInMs = EASY_MODE_INTERVAL_IN_MS;
+  digitalWrite(EASY_MODE_LED, HIGH);
+  return true;
 }
 
 bool canBeginGame() {
@@ -91,7 +98,7 @@ void generateFood() {
       if (hasFoodGenerationCollisionWithSnake(i, x, y)) {
         break;
       }
-      if (hasReachedSnakeHead(i)) {
+      if (isSnakeHead(i)) {
         validFoodCoordinates = true;
       }
     }
@@ -103,7 +110,7 @@ bool hasFoodGenerationCollisionWithSnake(int i, byte foodX, byte foodY) {
   return snake[i].x == foodX && snake[i].y == foodY;
 }
 
-bool hasReachedSnakeHead(int i) {
+bool isSnakeHead(int i) {
   return i+1 == snakeLength;
 }
 
@@ -137,78 +144,67 @@ void handleFoodCollision() {
 }
 
 void increaseSnakeLength() {
-  readInputsAndUpdateSnakeDirection();
-  int head = snakeLength - 1;
-  
-  if (direction == RIGHT) {
-    byte x = snake[head].x + 1 > HORIZONTAL_SIZE ? 1 : snake[head].x + 1;
-    snake[snakeLength] = { x , snake[head].y };
-  } else if (direction == LEFT) {
-    byte x = snake[head].x - 1 < 1 ? HORIZONTAL_SIZE : snake[head].x - 1;
-    snake[snakeLength] = { x , snake[head].y };
-  } else if (direction == UP) {
-    byte y = snake[head].y - 1 < 1 ? VERTICAL_SIZE : snake[head].y - 1;
-    snake[snakeLength] = { snake[snakeLength - 1].x , y };
-  } else if (direction == DOWN) {
-    byte y = snake[head].y + 1 > VERTICAL_SIZE ? 1 : snake[head].y + 1;
-    snake[snakeLength] = { snake[head].x , y };
-  }
-
+  int headPosition = snakeLength;
+  moveHead(headPosition);
   snakeLength++;   
 }
 
 int increaseSnakeSpeed() {
-    updateIntervalInMs -= intervalSubstractorInMs; 
+  updateIntervalInMs -= intervalSubtractorInMs; 
 }
 
 void moveSnake() {
+  moveTail();
+  int headPosition = snakeLength - 1;
+  moveHead(headPosition);
+}
+
+void moveTail() {
   for (int i = 0; i < BOARD_SIZE - 1; i++) {
-    if (direction == RIGHT) {
-      moveRight(i);
-    } else if (direction == LEFT) {
-      moveLeft(i);
-    } else if (direction == UP) {
-      moveUp(i);
-    } else if (direction == DOWN) {
-      moveDown(i);
+    if (isSnakeTail(i)){
+      snake[i] = snake[i+1];
     }
   }
 }
 
-void moveRight(int i) {
-  if (hasReachedSnakeHead(i)) {
-    byte x = snake[i].x + 1 > HORIZONTAL_SIZE ? 1 : snake[i].x + 1;
-    snake[i] = { x , snake[i].y };
-  } else if (i+1 < snakeLength){
-    snake[i] = snake[i+1];
-  }
+bool isSnakeTail(int i) {
+  return i+1 < snakeLength;  
 }
 
-void moveLeft(int i) {
-  if (hasReachedSnakeHead(i)) {
-    byte x = snake[i].x - 1 < 1 ? HORIZONTAL_SIZE : snake[i].x - 1;
-    snake[i] = { x , snake[i].y };
-  } else if (i+1 < snakeLength){
-    snake[i] = snake[i+1];
-  }
-}
-
-void moveUp(int i) {
-  if (hasReachedSnakeHead(i)) {
-    byte y = snake[i].y - 1 < 1 ? VERTICAL_SIZE : snake[i].y - 1;
-    snake[i] = { snake[i].x , y };
-  } else if (i+1 < snakeLength){
-    snake[i] = snake[i+1];
-  }
-}
-
-void moveDown(int i) {
-  if (hasReachedSnakeHead(i)) {
-    byte y = snake[i].y + 1 > VERTICAL_SIZE ? 1 : snake[i].y + 1;
-    snake[i] = { snake[i].x , y };
-  } else if (i+1 < snakeLength){
-    snake[i] = snake[i+1];
+void moveHead(int toPosition) {
+  if (direction == RIGHT) {
+    moveHeadRight(toPosition);
+  } else if (direction == LEFT) {
+    moveHeadLeft(toPosition);
+  } else if (direction == UP) {
+    moveHeadUp(toPosition);
+  } else if (direction == DOWN) {
+    moveHeadDown(toPosition);
   }  
+}
+
+void moveHeadRight(int toPosition) {
+  int head = snakeLength - 1;
+  byte x = snake[head].x + 1 > HORIZONTAL_SIZE ? 1 : snake[head].x + 1;
+  snake[toPosition] = { x , snake[head].y };
+}
+
+void moveHeadLeft(int toPosition) {
+  int head = snakeLength - 1;
+  byte x = snake[head].x - 1 < 1 ? HORIZONTAL_SIZE : snake[head].x - 1;
+  snake[toPosition] = { x , snake[head].y };
+}
+
+void moveHeadUp(int toPosition) {
+  int head = snakeLength - 1;
+  byte y = snake[head].y - 1 < 1 ? VERTICAL_SIZE : snake[head].y - 1;
+  snake[toPosition] = { snake[head].x , y };
+}
+
+void moveHeadDown(int toPosition) {
+  int head = snakeLength - 1;
+  byte y = snake[head].y + 1 > VERTICAL_SIZE ? 1 : snake[head].y + 1;
+  snake[toPosition] = { snake[head].x , y };
 }
 
 void checkGameOver() {
@@ -290,19 +286,34 @@ void renderState() {
 }
 
 void readInputsAndUpdateSnakeDirection() {
-  if (direction == RIGHT || direction == LEFT) {
-    if (digitalRead(UP_PIN)) {
-      direction = UP;
-    } else if (digitalRead(DOWN_PIN)) {
-      direction = DOWN;
-    }
+  if (isSnakeMovingHorizontally()) {
+    checkVerticalButtons();
   }
-               
-  if (direction == UP || direction == DOWN) {
-    if (digitalRead(RIGHT_PIN)) {
-      direction = RIGHT;
-    } else if (digitalRead(LEFT_PIN)) {
-      direction = LEFT;
-    }
+  if (isSnakeMovingVertically()) {
+    checkHorizontalButtons();
+  }
+}
+
+bool isSnakeMovingHorizontally() {
+  return direction == RIGHT || direction == LEFT;
+}
+
+void checkVerticalButtons() {
+  if (digitalRead(UP_PIN)) {
+    direction = UP;
+  } else if (digitalRead(DOWN_PIN)) {
+    direction = DOWN;
+  }
+}
+
+bool isSnakeMovingVertically() {
+  return direction == UP || direction == DOWN;
+}
+
+void checkHorizontalButtons() {
+  if (digitalRead(RIGHT_PIN)) {
+    direction = RIGHT;
+  } else if (digitalRead(LEFT_PIN)) {
+    direction = LEFT;
   }
 }
