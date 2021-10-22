@@ -1,24 +1,63 @@
+#include <LedControl.h>
+
 const byte DOWN_PIN = 2;
 const byte UP_PIN = 3;
 const byte LEFT_PIN = 4;
 const byte RIGHT_PIN = 5;
-const byte EASY_MODE_LED = 8;
-const byte HARD_MODE_LED = 9;
+const byte EASY_MODE_LED = 6;
+const byte HARD_MODE_LED = 7;
+
+const byte DISPLAY_DATA_IN_PIN = 8;
+const byte DISPLAY_CLOCK_PIN = 10;
+const byte DISPLAY_CS_PIN = 9;
 
 const byte VERTICAL_SIZE = 8;
 const byte HORIZONTAL_SIZE = 8;
 const int BOARD_SIZE = VERTICAL_SIZE * HORIZONTAL_SIZE;
 
-const int EASY_MODE_INTERVAL_IN_MS = 1000;
-const int EASY_MODE_SUBTRACTOR_IN_MS = 4;
-const int HARD_MODE_INTERVAL_IN_MS = 900;
-const int HARD_MODE_SUBTRACTOR_IN_MS = 5;
+const int EASY_MODE_INTERVAL_IN_MS = 700;
+const int EASY_MODE_SUBTRACTOR_IN_MS = 6;
+const int HARD_MODE_INTERVAL_IN_MS = 620;
+const int HARD_MODE_SUBTRACTOR_IN_MS = 7;
+
+const PROGMEM bool snakeMessage[8][69] = {
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+};
+
+const PROGMEM bool lostMessage[8][67] = {
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0}
+};
+
+const PROGMEM bool winMessage[8][28] = {
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0 },
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0 },
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 },
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 },
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0 },
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 },
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0 }
+};
 
 enum Direction {
   UP,
   RIGHT,
   DOWN,
-  LEFT 
+  LEFT
 };
 
 struct Point {
@@ -27,28 +66,24 @@ struct Point {
 };
 
 Point food = { 0, 0 };
-Point snake[BOARD_SIZE] = { { 4, 3 }, { 4, 4 }, { 4, 5 } };
-int snakeLength = 3;
+Point snake[BOARD_SIZE] = { { 3, 4 }, { 4, 4 }, { 5, 4 } };
+const byte INITIAL_SNAKE_LENGTH = 3;
+int snakeLength = INITIAL_SNAKE_LENGTH;
 Direction direction = RIGHT;
 
 int updateIntervalInMs = EASY_MODE_INTERVAL_IN_MS;
 short intervalSubtractorInMs = EASY_MODE_SUBTRACTOR_IN_MS;
 unsigned long timeElapsedInMs = 0;
 
+bool buttonAlreadyPressedForNextRender = false;
+
+LedControl matrix = LedControl(DISPLAY_DATA_IN_PIN, DISPLAY_CLOCK_PIN, DISPLAY_CS_PIN);
+
 void setup() {
-  pinMode(DOWN_PIN, INPUT);
-  pinMode(UP_PIN, INPUT);
-  pinMode(LEFT_PIN, INPUT);
-  pinMode(RIGHT_PIN, INPUT);
-  pinMode(EASY_MODE_LED, OUTPUT);
-  pinMode(HARD_MODE_LED, OUTPUT);
-  
   Serial.begin(9600);
-  Serial.println("Press the down button for easy mode or up button for hard mode...");
-  while(!isModeChosen());
-  Serial.println("Press the right button to start...");
-  while(!canBeginGame());
-  generateFood();
+  setupPins();
+  setupDisplay();
+  setupGame();
 }
 
 void loop() {
@@ -58,9 +93,45 @@ void loop() {
   readInputsAndUpdateSnakeDirection();
 }
 
+void setupPins() {
+  pinMode(DOWN_PIN, INPUT);
+  pinMode(UP_PIN, INPUT);
+  pinMode(LEFT_PIN, INPUT);
+  pinMode(RIGHT_PIN, INPUT);
+  pinMode(EASY_MODE_LED, OUTPUT);
+  pinMode(HARD_MODE_LED, OUTPUT);
+}
+
+void setupDisplay() {
+  matrix.shutdown(0, false);
+  matrix.setIntensity(0, 0);
+  matrix.clearDisplay(0);
+}
+
+void setupGame() {
+  displaySnakeMessage();
+  Serial.println("Press the down button for easy mode or up button for hard mode...");
+  while (!isModeChosen());
+  Serial.println("Press the right button to start...");
+  while (!canBeginGame());
+  generateFood();
+}
+
+void displaySnakeMessage() {
+  matrix.clearDisplay(0);
+  for (int k = 0; k < sizeof(snakeMessage[0]) - 7; k++) {
+    for (int column = 0; column < 8; column++) {
+      for (int row = 0; row < 8; row++) {
+        matrix.setLed(0, row, column, pgm_read_byte(&(snakeMessage[row][column + k])));
+      }
+    } 
+    delay(60);
+  }
+}
+
 bool isModeChosen() {
   if (digitalRead(UP_PIN)) {
-     return selectHardMode();
+    return selectHardMode();
   }
   if (digitalRead(DOWN_PIN)) {
     return selectEasyMode();
@@ -83,17 +154,17 @@ bool selectEasyMode() {
 }
 
 bool canBeginGame() {
-  return digitalRead(RIGHT_PIN);  
+  return digitalRead(RIGHT_PIN);
 }
 
 void generateFood() {
   randomSeed(analogRead(0));
   bool validFoodCoordinates = false;
-  
-  while(!validFoodCoordinates) {
+
+  while (!validFoodCoordinates) {
     byte x = random(1, HORIZONTAL_SIZE + 1);
     byte y = random(1, VERTICAL_SIZE + 1);
-    
+
     for (int i = 0; i < snakeLength; i++) {
       if (hasFoodGenerationCollisionWithSnake(i, x, y)) {
         break;
@@ -111,7 +182,7 @@ bool hasFoodGenerationCollisionWithSnake(int i, byte foodX, byte foodY) {
 }
 
 bool isSnakeHead(int i) {
-  return i+1 == snakeLength;
+  return i + 1 == snakeLength;
 }
 
 bool canUpdateGameState() {
@@ -140,17 +211,17 @@ bool hasFoodCollision() {
 void handleFoodCollision() {
   increaseSnakeLength();
   increaseSnakeSpeed();
-  generateFood(); 
+  generateFood();
 }
 
 void increaseSnakeLength() {
   int headPosition = snakeLength;
   moveHead(headPosition);
-  snakeLength++;   
+  snakeLength++;
 }
 
 int increaseSnakeSpeed() {
-  updateIntervalInMs -= intervalSubtractorInMs; 
+  updateIntervalInMs -= intervalSubtractorInMs;
 }
 
 void moveSnake() {
@@ -161,14 +232,14 @@ void moveSnake() {
 
 void moveTail() {
   for (int i = 0; i < BOARD_SIZE - 1; i++) {
-    if (isSnakeTail(i)){
-      snake[i] = snake[i+1];
+    if (isSnakeTail(i)) {
+      snake[i] = snake[i + 1];
     }
   }
 }
 
 bool isSnakeTail(int i) {
-  return i+1 < snakeLength;  
+  return i + 1 < snakeLength;
 }
 
 void moveHead(int toPosition) {
@@ -180,7 +251,7 @@ void moveHead(int toPosition) {
     moveHeadUp(toPosition);
   } else if (direction == DOWN) {
     moveHeadDown(toPosition);
-  }  
+  }
 }
 
 void moveHeadRight(int toPosition) {
@@ -210,10 +281,9 @@ void moveHeadDown(int toPosition) {
 void checkGameOver() {
   if (hasPlayerWin()) {
     displayWinMessage();
-  }
-  if (hasPlayerLost()) {
+  } else if (hasPlayerLost()) {
     displayLostMessage();
-  }  
+  }
 }
 
 bool hasPlayerWin() {
@@ -225,64 +295,68 @@ bool hasPlayerLost() {
     if (hasSnakeCollision(i)) {
       return true;
     }
-  }   
+  }
   return false;
 }
 
 bool hasSnakeCollision(int tail) {
   int head = snakeLength - 1;
-  return snake[head].x == snake[tail].x && snake[head].y == snake[tail].y; 
+  return snake[head].x == snake[tail].x && snake[head].y == snake[tail].y;
 }
 
 void displayWinMessage() {
-  // ------------------------------------------------------------
-  // SUBSTITUIR PRINTS PELA INTERFACE DE COMUNICACAO COM A MATRIZ
-  // ------------------------------------------------------------
+  delay(1000);
   Serial.println("You win! :)");
-  while(true) {
-    digitalWrite(EASY_MODE_LED, HIGH);
-    digitalWrite(HARD_MODE_LED, LOW);
-    delay(300);
-    digitalWrite(EASY_MODE_LED, LOW);
-    digitalWrite(HARD_MODE_LED, HIGH);
-    delay(300);
-  };
+  while (true) {
+    matrix.clearDisplay(0);
+    for (int k = 0; k < sizeof(winMessage[0]) - 7; k++) {
+      for (int column = 0; column < 8; column++) {
+        for (int row = 0; row < 8; row++) {
+          matrix.setLed(0, row, column, pgm_read_byte(&(winMessage[row][column + k])));
+        }
+      } 
+      delay(50);
+    }
+  }
 }
 
 void displayLostMessage() {
-  // ------------------------------------------------------------
-  // SUBSTITUIR PRINTS PELA INTERFACE DE COMUNICACAO COM A MATRIZ
-  // ------------------------------------------------------------
+  delay(1000);
   Serial.println("You lost... :(");
-  while(true) {
-    digitalWrite(EASY_MODE_LED, HIGH);
-    digitalWrite(HARD_MODE_LED, HIGH);
-    delay(300);
-    digitalWrite(EASY_MODE_LED, LOW);
-    digitalWrite(HARD_MODE_LED, LOW);
-    delay(300);
-  };
+  while (true) {
+    matrix.clearDisplay(0);
+    for (int k = 0; k < sizeof(lostMessage[0]) - 7; k++) {
+      for (int column = 0; column < 8; column++) {
+        for (int row = 0; row < 8; row++) {
+          matrix.setLed(0, row, column, pgm_read_byte(&(lostMessage[row][column + k])));
+        }
+      } 
+      delay(50);
+    }
+  }
 }
 
 void renderState() {
-  // ------------------------------------------------------------
-  // SUBSTITUIR PRINTS PELA INTERFACE DE COMUNICACAO COM A MATRIZ
-  // ------------------------------------------------------------
-  Serial.println("");
-  Serial.print("FOOD: ");
-  Serial.print(food.x);
-  Serial.print(" ");
-  Serial.println(food.y);
-  Serial.println("");
-  Serial.println("SNAKE: ");
+  clearState();
+  renderFood();
+  renderSnake();
+}
+
+void clearState() {
+  buttonAlreadyPressedForNextRender = false;
+  matrix.clearDisplay(0);
+}
+
+void renderFood() {
+  matrix.setLed(0, food.y - 1, food.x - 1, true);
+}
+
+void renderSnake() {
   for (int i = 0; i < BOARD_SIZE; i++) {
     if (i < snakeLength) {
-      Serial.print(snake[i].x);
-      Serial.print(" ");
-      Serial.println(snake[i].y);
+      matrix.setLed(0, snake[i].y - 1, snake[i].x - 1, true);
     }
   }
-  Serial.println("");
 }
 
 void readInputsAndUpdateSnakeDirection() {
@@ -295,25 +369,29 @@ void readInputsAndUpdateSnakeDirection() {
 }
 
 bool isSnakeMovingHorizontally() {
-  return direction == RIGHT || direction == LEFT;
+  return (direction == RIGHT || direction == LEFT) && !buttonAlreadyPressedForNextRender;
 }
 
 void checkVerticalButtons() {
   if (digitalRead(UP_PIN)) {
     direction = UP;
+    buttonAlreadyPressedForNextRender = true;
   } else if (digitalRead(DOWN_PIN)) {
     direction = DOWN;
+    buttonAlreadyPressedForNextRender = true;
   }
 }
 
 bool isSnakeMovingVertically() {
-  return direction == UP || direction == DOWN;
+  return (direction == UP || direction == DOWN) && !buttonAlreadyPressedForNextRender;
 }
 
 void checkHorizontalButtons() {
   if (digitalRead(RIGHT_PIN)) {
     direction = RIGHT;
+    buttonAlreadyPressedForNextRender = true;
   } else if (digitalRead(LEFT_PIN)) {
     direction = LEFT;
+    buttonAlreadyPressedForNextRender = true;
   }
 }
