@@ -77,7 +77,7 @@ unsigned long timeElapsedInMs = 0;
 
 bool buttonAlreadyPressedForNextRender = false;
 
-LedControl matrix = LedControl(DISPLAY_DATA_IN_PIN, DISPLAY_CLOCK_PIN, DISPLAY_CS_PIN);
+LedControl display = LedControl(DISPLAY_DATA_IN_PIN, DISPLAY_CLOCK_PIN, DISPLAY_CS_PIN);
 
 void setup() {
   Serial.begin(9600);
@@ -103,9 +103,9 @@ void setupPins() {
 }
 
 void setupDisplay() {
-  matrix.shutdown(0, false);
-  matrix.setIntensity(0, 0);
-  matrix.clearDisplay(0);
+  display.shutdown(0, false);
+  display.setIntensity(0, 0);
+  display.clearDisplay(0);
 }
 
 void setupGame() {
@@ -118,14 +118,14 @@ void setupGame() {
 }
 
 void displaySnakeMessage() {
-  matrix.clearDisplay(0);
+  display.clearDisplay(0);
   for (int k = 0; k < sizeof(snakeMessage[0]) - 7; k++) {
     for (int column = 0; column < 8; column++) {
       for (int row = 0; row < 8; row++) {
-        matrix.setLed(0, row, column, pgm_read_byte(&(snakeMessage[row][column + k])));
+        display.setLed(0, row, column, pgm_read_byte(&(snakeMessage[row][column + k])));
       }
     } 
-    delay(60);
+    delay(70);
   }
 }
 
@@ -305,14 +305,14 @@ bool hasSnakeCollision(int tail) {
 }
 
 void displayWinMessage() {
-  delay(1000);
   Serial.println("You win! :)");
+  blinkSnake();
   while (true) {
-    matrix.clearDisplay(0);
+    display.clearDisplay(0);
     for (int k = 0; k < sizeof(winMessage[0]) - 7; k++) {
       for (int column = 0; column < 8; column++) {
         for (int row = 0; row < 8; row++) {
-          matrix.setLed(0, row, column, pgm_read_byte(&(winMessage[row][column + k])));
+          display.setLed(0, row, column, pgm_read_byte(&(winMessage[row][column + k])));
         }
       } 
       delay(50);
@@ -321,18 +321,27 @@ void displayWinMessage() {
 }
 
 void displayLostMessage() {
-  delay(1000);
   Serial.println("You lost... :(");
+  blinkSnake();
   while (true) {
-    matrix.clearDisplay(0);
+    display.clearDisplay(0);
     for (int k = 0; k < sizeof(lostMessage[0]) - 7; k++) {
       for (int column = 0; column < 8; column++) {
         for (int row = 0; row < 8; row++) {
-          matrix.setLed(0, row, column, pgm_read_byte(&(lostMessage[row][column + k])));
+          display.setLed(0, row, column, pgm_read_byte(&(lostMessage[row][column + k])));
         }
       } 
       delay(50);
     }
+  }
+}
+
+void blinkSnake() {
+  for (int i = 0; i < 4; i++) {
+    clearState();
+    delay(300);
+    renderSnake();
+    delay(300);
   }
 }
 
@@ -344,17 +353,17 @@ void renderState() {
 
 void clearState() {
   buttonAlreadyPressedForNextRender = false;
-  matrix.clearDisplay(0);
+  display.clearDisplay(0);
 }
 
 void renderFood() {
-  matrix.setLed(0, food.y - 1, food.x - 1, true);
+  display.setLed(0, food.y - 1, food.x - 1, true);
 }
 
 void renderSnake() {
   for (int i = 0; i < BOARD_SIZE; i++) {
     if (i < snakeLength) {
-      matrix.setLed(0, snake[i].y - 1, snake[i].x - 1, true);
+      display.setLed(0, snake[i].y - 1, snake[i].x - 1, true);
     }
   }
 }
